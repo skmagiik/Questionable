@@ -22,6 +22,7 @@ internal sealed class QuestionableIpc : IDisposable
     private const string IpcImportQuestPriority = "Questionable.ImportQuestPriority";
     private const string IpcClearQuestPriority = "Questionable.ClearQuestPriority";
     private const string IpcAddQuestPriority = "Questionable.AddQuestPriority";
+    private const string IpcAddQuestPriorityAcceptOnly = "Questionable.AddQuestPriorityAcceptOnly";
     private const string IpcInsertQuestPriority = "Questionable.InsertQuestPriority";
     private const string IpcExportQuestPriority = "Questionable.ExportQuestPriority";
     private const string IpcStartGathering = "Questionable.StartGathering";
@@ -30,6 +31,7 @@ internal sealed class QuestionableIpc : IDisposable
     private const string IpcRedoLookup = "Questionable.RedoLookup";
     private const string IpcRedoLookupIndex = "Questionable.RedoLookupIndex";
     private readonly ICallGateProvider<string, bool> _addQuestPriority;
+    private readonly ICallGateProvider<string, bool> _addQuestPriorityAcceptOnly;
     private readonly ICallGateProvider<bool> _clearQuestPriority;
     private readonly ICallGateProvider<string> _exportQuestPriority;
     private readonly ICallGateProvider<List<string>> _getCurrentlyActiveEventQuests;
@@ -119,6 +121,9 @@ internal sealed class QuestionableIpc : IDisposable
         _addQuestPriority = pluginInterface.GetIpcProvider<string, bool>(IpcAddQuestPriority);
         _addQuestPriority.RegisterFunc(AddQuestPriority);
 
+        _addQuestPriorityAcceptOnly = pluginInterface.GetIpcProvider<string, bool>(IpcAddQuestPriorityAcceptOnly);
+        _addQuestPriorityAcceptOnly.RegisterFunc(AddQuestPriorityAcceptOnly);
+
         _clearQuestPriority = pluginInterface.GetIpcProvider<bool>(IpcClearQuestPriority);
         _clearQuestPriority.RegisterFunc(ClearQuestPriority);
 
@@ -161,6 +166,7 @@ internal sealed class QuestionableIpc : IDisposable
         _isQuestUnobtainable.UnregisterFunc();
         _importQuestPriority.UnregisterFunc();
         _addQuestPriority.UnregisterFunc();
+        _addQuestPriorityAcceptOnly.UnregisterFunc();
         _clearQuestPriority.UnregisterFunc();
         _insertQuestPriority.UnregisterFunc();
         _exportQuestPriority.UnregisterFunc();
@@ -293,6 +299,18 @@ internal sealed class QuestionableIpc : IDisposable
             _questRegistry.IsKnownQuest(elementId))
         {
             return _questController.PriorityManager.Add(elementId);
+        }
+
+        return true;
+    }
+
+    private bool AddQuestPriorityAcceptOnly(string questId)
+    {
+        _logger.LogDebug("AddQuestPriorityAcceptOnly({QuestId})", questId);
+        if (ElementId.TryFromString(questId, out ElementId? elementId) && elementId != null &&
+            _questRegistry.IsKnownQuest(elementId))
+        {
+            _questController.PriorityManager.MarkAcceptOnly(elementId);
         }
 
         return true;
